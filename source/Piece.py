@@ -12,3 +12,11 @@ class Piece(Enum):
             return Piece.BLACK
         else:
             raise Exception("opposite of plain")
+
+    def description(self):
+        if self == Piece.BLACK:
+            return "x"
+        elif self == Piece.WHITE:
+            return "o"
+        else:
+            return "."
