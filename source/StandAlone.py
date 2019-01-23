@@ -10,6 +10,7 @@ class Game():
         self.player_black = player_black
         self.player_white = player_white
         self.turn_piece = Piece.BLACK
+        self.done = False
 
     def play(self):
         flag_pass = False
@@ -20,6 +21,7 @@ class Game():
             print(self.turn_piece, move)
             if move is None:
                 if flag_pass:
+                    self.done = True
                     return
                 else:
                     flag_pass = True
@@ -31,6 +33,29 @@ class Game():
                 self.player_white.move(self.turn_piece, x, y)
             self.turn_piece = self.turn_piece.opposite()
 
+    def result(self):
+        if not self.done:
+            raise Exception("not finished")
+
+        record = { Piece.BLACK: 0, Piece.WHITE: 0 }
+
+        for y in range(self.board.size):
+            for x in range(self.board.size):
+                piece = self.board.get(x, y)
+                if piece != Piece.PLAIN:
+                    record[self.board.get(x, y)] += 1
+
+        diff = record[Piece.BLACK] - record[Piece.WHITE]
+
+        if diff > 0:
+            record["win"] = Piece.BLACK
+        elif diff < 0:
+            record["win"] = Piece.WHITE
+        else:
+            record["win"] = None
+
+        return record
+
 def main():
     config = { "board_size": 8 }
     player_black = RandomPlayer(config, Piece.BLACK)
@@ -39,5 +64,21 @@ def main():
     game.play()
     game.board.show()
 
+def battle(times):
+    config = { "board_size": 8 }
+    record = { Piece.BLACK: 0, Piece.WHITE: 0, "draw": 0 }
+    for i_game in range(times):
+        player_black = RandomPlayer(config, Piece.BLACK)
+        player_white = RandomPlayer(config, Piece.WHITE)
+        game = Game(config, player_black, player_white)
+        game.play()
+        result = game.result()
+        if result["win"] is not None:
+            record[result["win"]] += 1
+        else:
+            record["draw"] += 1
+
+    print(record)
+
 if __name__ == "__main__":
-    main()
+    battle(100)
