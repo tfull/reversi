@@ -1,22 +1,29 @@
-import numpy as np
-import random
-
 from Board import Board
 
 class Player():    
     def __init__(self, config, piece):
-        self.board = Board(config["board_size"])
+        self.config = config
+        self.initialize(piece)
+
+    def initialize(self, piece):
+        self.board = Board(self.config["board_size"])
+        self.set_piece(piece)
+
+    def set_piece(self, piece):
         self.piece = piece
 
     def select(self):
-        movable = self.get_movable()
+        movable = self.board.get_movable(self.piece)
         if len(movable) > 0:
-            return random.choice(movable)
+            return movable[0]
         else:
             return None
 
-    def get_movable(self):
-        return [(x, y) for y in range(self.board.size) for x in range(self.board.size) if self.board.move(self.piece, x, y, test=True)]
-
     def move(self, piece, x, y):
         self.board.move(piece, x, y)
+
+    def undo(self):
+        self.board.undo()
+
+    def pass_turn(self, piece):
+        self.board.pass_turn(piece)
