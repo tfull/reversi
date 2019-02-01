@@ -1,9 +1,14 @@
 from Board import Board
 
+class PlayerException(Exception):
+    pass
+
 class Player():    
-    def __init__(self, config, piece):
+    def __init__(self, config, piece, name="basic"):
         self.config = config
+        self.name = name
         self.initialize(piece)
+        self.game_count = 0
 
     def initialize(self, piece):
         self.board = Board(self.config["board_size"])
@@ -27,3 +32,20 @@ class Player():
 
     def pass_turn(self, piece):
         self.board.pass_turn(piece)
+
+    def complete(self):
+        self.game_count += 1
+
+    def status(self):
+        st = { "name": self.name }
+        if self.piece is not None:
+            st["piece"] = self.piece
+        return st
+
+    def print_status(self):
+        status = self.status()
+        order = ["piece"]
+        print(self.name + ":")
+        for key in order:
+            if key in status:
+                print("  {0}: {1}".format(key, status[key]))

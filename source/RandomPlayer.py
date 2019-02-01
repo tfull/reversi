@@ -3,10 +3,10 @@ import random
 from Player import Player
 
 class RandomPlayer(Player):
-    def __init__(self, config, piece=None, options=None):
+    def __init__(self, config, piece=None, name="random", options=None):
         super(RandomPlayer, self).__init__(config, piece)
         options = {} if options is None else options
-        self.name = options.get("name") or "random"
+        self.name = name
 
     def select(self):
         movable = self.board.get_movable(self.piece)

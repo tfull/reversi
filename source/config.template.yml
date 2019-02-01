@@ -1,0 +1,54 @@
+global:
+    game:
+        board_size: 8
+    model_directory: model
+
+players:
+    first_dlp:
+        engine: DeepLearningPlayer
+        load: max
+
+    random:
+        engine: RandomPlayer
+
+    zero1:
+        engine: DeepLearningPlayer
+        load: max
+    zero2:
+        engine: DeepLearningPlayer
+        load: max
+
+processes:
+    train1:
+        players:
+            first_dlp:
+                mode: train
+            random: null
+        first: random
+        game:
+            board_size: 8
+        times: 10000
+
+    test1:
+        players:
+            first_dlp:
+                mode: test
+            random: null
+        game:
+            board_size: 8
+        times: 100
+
+    train_zero:
+        players:
+            zero1:
+                mode: train
+            zero2:
+                mode: train
+        times: 100000
+
+    test_zero:
+        players:
+            zero1:
+                mode: test
+            random: null
+        times: 10000

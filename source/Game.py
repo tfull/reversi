@@ -28,7 +28,7 @@ class Game():
                 self.player_white.pass_turn(self.turn_piece)
 
                 if flag_pass:
-                    self.done = True
+                    self.complete()
                     return
                 else:
                     flag_pass = True
@@ -56,52 +56,7 @@ class Game():
 
         return record
 
-    def result(self):
-        if not self.done:
-            raise Exception("not finished")
-
-        record = { Piece.BLACK: 0, Piece.WHITE: 0 }
-
-        for y in range(self.board.size):
-            for x in range(self.board.size):
-                piece = self.board.get(x, y)
-                if piece != Piece.PLAIN:
-                    record[self.board.get(x, y)] += 1
-
-        diff = record[Piece.BLACK] - record[Piece.WHITE]
-
-        if diff > 0:
-            record["win"] = Piece.BLACK
-        elif diff < 0:
-            record["win"] = Piece.WHITE
-        else:
-            record["win"] = None
-
-        return record
-
-def main():
-    config = { "board_size": 8 }
-    player_black = RandomPlayer(config, Piece.BLACK)
-    player_white = RandomPlayer(config, Piece.WHITE)
-    game = Game(config, player_black, player_white)
-    game.play()
-    game.board.show()
-
-def battle(times):
-    config = { "board_size": 8 }
-    record = { Piece.BLACK: 0, Piece.WHITE: 0, "draw": 0 }
-    for i_game in range(times):
-        player_black = RandomPlayer(config, Piece.BLACK)
-        player_white = RandomPlayer(config, Piece.WHITE)
-        game = Game(config, player_black, player_white)
-        game.play()
-        result = game.result()
-        if result["win"] is not None:
-            record[result["win"]] += 1
-        else:
-            record["draw"] += 1
-
-    print(record)
-
-if __name__ == "__main__":
-    battle(100)
+    def complete(self):
+        self.done = True
+        self.player_black.complete()
+        self.player_white.complete()

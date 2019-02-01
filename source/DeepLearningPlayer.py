@@ -1,49 +1,96 @@
-from chainer import Chain, Variable, optimizers
+import random
+import os
+import numpy as np
+from chainer import Chain, Variable, optimizers, serializers
 import chainer.links as L
 import chainer.functions as F
-import numpy as np
-import random
 
-from Player import Player
+import Config
+from Player import *
 
 class DeepLearningPlayer(Player):
-    def __init__(self, config, piece=None, options = None):
+    def __init__(self, config, piece=None, name="deep", options = None):
         super(DeepLearningPlayer, self).__init__(config, piece)
+        self.name = name
         options = {} if options is None else options
         self.batch_size = options.get("batch_size") or 100
-        self.checkpoint = options.get("checkpoint") or 10000
-        self.name = options.get("name") or "deep"
+        self.checkpoint = options.get("checkpoint") or 1000
+        self.load_checkpoint = options.get("load")
         self.train_x = []
         self.train_y = []
-        self.mode = "train"
+        self.train_count = 0
+        self.set_mode(options.get("mode") or "train")
+        self.setup_brain()
+
+    def status(self):
+        st = super(DeepLearningPlayer, self).status()
+        st["train_count"] = self.train_count
+        return st
+
+    def print_status(self):
+        status = self.status()
+        order = ["game_count", "train_count"]
+        print(self.name + ":")
+        for key in order:
+            if key in status:
+                print("  {0}: {1}".format(key, status[key]))
 
     def set_mode(self, mode):
+        if mode not in ["train", "test"]:
+            raise Exception("train or test")
         self.mode = mode
+
+    def random_or_choice(self):
+        if max(0.1, 1 - (0.9 / 100000) * self.train_count) < random.random():
+            return "choice"
+        else:
+            return "random"
 
     def select(self):
         if self.mode == "train":
             movable = self.board.get_movable(self.piece)
             if len(movable) > 0:
-                return random.choice(movable)
+                if self.random_or_choice() == "random":
+                    return random.choice(movable)
+                else:
+                    return self.select_by_brain(movable)
             else:
                 return None
         else:
             movable = self.board.get_movable(self.piece)
             if len(movable) > 0:
-                move_board_array = []
-                for x, y in movable:
-                    self.board.move(self.piece, x, y)
-                    move_board_array.append([self.board.get_array(self.piece)])
-                    self.board.undo()
-                index_argmax = self.brain.argmax(np.array(move_board_array, dtype=np.float32))
-                return movable[index_argmax]
+                return self.select_by_brain(movable)
             else:
                 return None
+
+    def select_by_brain(self, movable):
+        move_board_array = []
+        for x, y in movable:
+            self.board.move(self.piece, x, y)
+            move_board_array.append([self.board.get_array(self.piece)])
+            self.board.undo()
+        index_argmax = self.brain.argmax(np.array(move_board_array, dtype=np.float32))
+        return movable[index_argmax]
 
     def setup_brain(self):
         self.brain = Brain()
         self.brain_optimizer = optimizers.Adam()
         self.brain_optimizer.setup(self.brain)
+        if self.load_checkpoint is not None:
+            self.load()
+
+    def save(self):
+        model_dir = Config.get("global")["model_directory"]
+        os.makedirs("{0}/{1}".format(model_dir, self.name), exist_ok=True)
+        serializers.save_hdf5("{0}/{1}/model_{2}.h5".format(model_dir, self.name, self.train_count), self.brain)
+        serializers.save_hdf5("{0}/{1}/optimizer_{2}.h5".format(model_dir, self.name, self.train_count), self.brain_optimizer)
+
+    def load(self):
+        model_dir = Config.get("global")["model_directory"]
+        os.makedirs("{0}/{1}".format(model_dir, self.name), exist_ok=True)
+        serializers.load_hdf5("{0}/{1}/model_{2}.h5".format(model_dir, self.name, self.load_checkpoint), self.brain)
+        serializers.load_hdf5("{0}/{1}/optimizer_{2}.h5".format(model_dir, self.name, self.load_checkpoint), self.brain_optimizer)
+        self.train_count = self.load_checkpoint
 
     def learn(self):
         history = self.board.get_history_array(self.piece)
@@ -52,10 +99,13 @@ class DeepLearningPlayer(Player):
         score = self.board.get_score(self.piece) / self.board.size ** 2
         test_array = [[score] for _ in train_array]
         self.train_y.extend(test_array)
-        if len(self.train_x) >= self.batch_size:
+        self.train_count += 1
+        if self.train_count % self.batch_size == 0:
             self.train(np.array(self.train_x, dtype=np.float32), np.array(self.train_y, dtype=np.float32))
             self.train_x = []
             self.train_y = []
+        if self.train_count % self.checkpoint == 0:
+            self.save()
 
     def train(self, train_x, train_y):
         loss = self.brain.loss(train_x, train_y)
@@ -63,8 +113,10 @@ class DeepLearningPlayer(Player):
         loss.backward()
         self.brain_optimizer.update()
 
-    def save(self):
-        pass
+    def complete(self):
+        super(DeepLearningPlayer, self).complete()
+        if self.mode == "train":
+            self.learn()
 
 class Brain(Chain):
     def __init__(self):
