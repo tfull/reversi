@@ -11,18 +11,18 @@ from Game import Game
 
 class Process:
     def __init__(self, name):
-        self.process = self.build(name)
+        self.name = name
+        self.build()
 
-    def build(self, name):
-        self.process_config = Config.get_process(name)
-        self.game_config = self.process_config.get("game") or Config.get_global("game")
-        self.times = self.process_config["times"]
+    def build(self):
+        self.game_config = dict(Config.get_global("game", default={}), **Config.get_process(self.name, "game", default={}))
+        self.times = Config.get_process(self.name, "times", must=True)
         self.players = {}
-        for name in self.process_config["players"]:
-            self.players[name] = build_player(self.game_config, name, self.process_config["players"][name])
+        for name in Config.get_process(self.name, "players", must=True):
+            self.players[name] = build_player(self.game_config, name, self.name)
 
     def allocate_piece(self):
-        first = self.process_config.get("first") or "random"
+        first = Config.get_process(self.name, "first", default="random")
         names = list(self.players.keys())
         if first == "random":
             rand = random.randint(0, 1)
@@ -67,13 +67,12 @@ class Process:
             print("- {0}: {1} win!".format(name, result[name]))
         print("- and {0} draw!".format(result["* draw"]))
 
-def build_player(game_config, name, process_config_player):
-    player_config = Config.get_player(name)
-    engine = player_config["engine"]
+def build_player(game_config, name, process_name):
+    engine = Config.get_player(name, "engine")
     if engine == "RandomPlayer":
         return build_random_player(game_config, name)
     elif engine == "DeepLearningPlayer":
-        mode = process_config_player.get("mode") or "test"
+        mode = Config.get_process(process_name, "players", name, "mode", default="test")
         return build_deep_learning_player(game_config, name, mode=mode)
 
 def build_random_player(game_config, name):
@@ -81,10 +80,9 @@ def build_random_player(game_config, name):
 
 def build_deep_learning_player(game_config, name, mode="test"):
     options = { "mode": mode }
-    player_config = Config.get_player(name)
-    load = player_config.get("load")
+    load = Config.get_player(name, "load", must=True)
     if load is not None:
-        model_dir = Config.get("global")["model_directory"]
+        model_dir = Config.get_global("model_directory", default="model")
         if load == "max":
             filename_list = glob.glob("{0}/{1}/model_*.h5".format(model_dir, name))
             if len(filename_list) > 0:

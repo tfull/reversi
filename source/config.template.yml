@@ -4,6 +4,13 @@ global:
     model_directory: model
 
 players:
+    debug_dl:
+        engine: DeepLearningPlayer
+        load: max
+
+    debug_random:
+        engine: RandomPlayer
+
     first_dlp:
         engine: DeepLearningPlayer
         load: max
@@ -19,6 +26,13 @@ players:
         load: max
 
 processes:
+    debug:
+        players:
+            debug_dl:
+                mode: train
+            debug_random: null
+        times: 100
+
     train1:
         players:
             first_dlp:

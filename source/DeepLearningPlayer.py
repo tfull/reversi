@@ -80,13 +80,13 @@ class DeepLearningPlayer(Player):
             self.load()
 
     def save(self):
-        model_dir = Config.get("global")["model_directory"]
+        model_dir = Config.get_global("model_directory")
         os.makedirs("{0}/{1}".format(model_dir, self.name), exist_ok=True)
         serializers.save_hdf5("{0}/{1}/model_{2}.h5".format(model_dir, self.name, self.train_count), self.brain)
         serializers.save_hdf5("{0}/{1}/optimizer_{2}.h5".format(model_dir, self.name, self.train_count), self.brain_optimizer)
 
     def load(self):
-        model_dir = Config.get("global")["model_directory"]
+        model_dir = Config.get_global("model_directory")
         os.makedirs("{0}/{1}".format(model_dir, self.name), exist_ok=True)
         serializers.load_hdf5("{0}/{1}/model_{2}.h5".format(model_dir, self.name, self.load_checkpoint), self.brain)
         serializers.load_hdf5("{0}/{1}/optimizer_{2}.h5".format(model_dir, self.name, self.load_checkpoint), self.brain_optimizer)
