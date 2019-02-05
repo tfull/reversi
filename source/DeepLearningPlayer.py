@@ -14,13 +14,18 @@ class DeepLearningPlayer(Player):
         self.name = name
         options = {} if options is None else options
         self.batch_size = options.get("batch_size") or 100
-        self.checkpoint = options.get("checkpoint") or 1000
+        self.checkpoint = options.get("checkpoint_interval") or 10000
         self.load_checkpoint = options.get("load")
-        self.train_x = []
-        self.train_y = []
+        self.train_piece = options.get("train_piece") or "single"
         self.train_count = 0
+        self.policy = build_policy(options.get("policy") or { "mode": "linear_epsilon_greedy", "max": { "count": 0 , "probability": 1.0 }, "min": { "count": 100000, "probability": 0.1 } })
         self.set_mode(options.get("mode") or "train")
         self.setup_brain()
+
+    def debug_string(self):
+        st = self.status()
+        keys = ["piece", "train_count"]
+        return ", ".join(["{0}: {1}".format(key, st[key]) for key in keys])
 
     def status(self):
         st = super(DeepLearningPlayer, self).status()
@@ -36,12 +41,21 @@ class DeepLearningPlayer(Player):
                 print("  {0}: {1}".format(key, status[key]))
 
     def set_mode(self, mode):
-        if mode not in ["train", "test"]:
-            raise Exception("train or test")
+        if mode == "train":
+            self.initialize_train_data()
+        elif mode == "test":
+            pass
+        else:
+            raise PlayerException("mode: train or test")
+
         self.mode = mode
 
+    def initialize_train_data(self):
+        self.train_x = []
+        self.train_y = []
+
     def random_or_choice(self):
-        if max(0.1, 1 - (0.9 / 100000) * self.train_count) < random.random():
+        if self.policy(self.train_count):
             return "choice"
         else:
             return "random"
@@ -93,21 +107,26 @@ class DeepLearningPlayer(Player):
         self.train_count = self.load_checkpoint
 
     def learn(self):
-        history = self.board.get_history_array(self.piece)
-        train_array = [[h] for h in history[1:]]
-        self.train_x.extend(train_array)
-        score = self.board.get_score(self.piece) / self.board.size ** 2
-        test_array = [[score] for _ in train_array]
-        self.train_y.extend(test_array)
+        pieces = [self.piece, self.piece.opposite()] if self.train_piece == "both" else [self.piece]
+        for piece in pieces:
+            history = self.board.get_history_array(piece)
+            train_array = [[h] for h in history[1:]]
+            self.train_x.extend(train_array)
+            score = self.board.get_score(piece) / self.board.size ** 2
+            test_array = [[score] for _ in train_array]
+            self.train_y.extend(test_array)
+
         self.train_count += 1
+
         if self.train_count % self.batch_size == 0:
-            self.train(np.array(self.train_x, dtype=np.float32), np.array(self.train_y, dtype=np.float32))
-            self.train_x = []
-            self.train_y = []
+            self.train()
+            self.initialize_train_data()
         if self.train_count % self.checkpoint == 0:
             self.save()
 
-    def train(self, train_x, train_y):
+    def train(self):
+        train_x = np.array(self.train_x, dtype=np.float32)
+        train_y = np.array(self.train_y, dtype=np.float32)
         loss = self.brain.loss(train_x, train_y)
         self.brain.cleargrads()
         loss.backward()
@@ -117,6 +136,23 @@ class DeepLearningPlayer(Player):
         super(DeepLearningPlayer, self).complete()
         if self.mode == "train":
             self.learn()
+
+def build_policy(parameter):
+    mode = parameter.get("mode")
+    if mode is None:
+        raise PlayerException("no policy mode")
+    if mode != "linear_epsilon_greedy":
+        raise PlayerException("policy {} not implemented".format(mode))
+
+    min_probability = parameter["min"]["probability"]
+    min_count = parameter["min"]["count"]
+    max_probability = parameter["max"]["probability"]
+    max_count = parameter["max"]["count"]
+
+    dc = min_count - max_count
+    dp = min_probability - max_probability
+
+    return lambda x: np.clip(dp / dc * (x - max_count) + max_probability, min_probability, max_probability) < random.random()
 
 class Brain(Chain):
     def __init__(self):

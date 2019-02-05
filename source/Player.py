@@ -36,10 +36,16 @@ class Player():
     def complete(self):
         self.game_count += 1
 
+    def debug_string(self):
+        st = self.status()
+        return "piece: " + st["piece"]
+
     def status(self):
         st = { "name": self.name }
         if self.piece is not None:
-            st["piece"] = self.piece
+            st["piece"] = self.piece.description()
+        else:
+            st["piece"] = "-"
         return st
 
     def print_status(self):

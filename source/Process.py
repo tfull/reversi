@@ -9,6 +9,8 @@ from RandomPlayer import RandomPlayer
 from DeepLearningPlayer import DeepLearningPlayer
 from Game import Game
 
+DEBUG = False
+
 class Process:
     def __init__(self, name):
         self.name = name
@@ -33,9 +35,9 @@ class Process:
         else:
             index = names.index(first)
             player_black = self.players[first]
-            player_black.get_piece(Piece.BLACK)
+            player_black.initialize(Piece.BLACK)
             player_white = self.players[names[1 - index]]
-            player_white.get_piece(Piece.WHITE)
+            player_white.initialize(Piece.WHITE)
         return { Piece.BLACK: player_black, Piece.WHITE: player_white }
 
     def run(self, console=True):
@@ -46,6 +48,10 @@ class Process:
             if console:
                 sys.stdout.write("\033[2K\033[G")
                 sys.stdout.write("process: {0} / {1} games".format(i_game + 1, self.times))
+                if DEBUG:
+                    for name in names:
+                        player = self.players[name]
+                        sys.stdout.write(", {0} ({1})".format(name, player.debug_string()))
                 sys.stdout.flush()
             order = self.allocate_piece()
             game = Game(self.game_config, order[Piece.BLACK], order[Piece.WHITE])
@@ -76,7 +82,7 @@ def build_player(game_config, name, process_name):
         return build_deep_learning_player(game_config, name, mode=mode)
 
 def build_random_player(game_config, name):
-    return RandomPlayer(game_config, name)
+    return RandomPlayer(game_config, name=name)
 
 def build_deep_learning_player(game_config, name, mode="test"):
     options = { "mode": mode }
@@ -96,5 +102,8 @@ def build_deep_learning_player(game_config, name, mode="test"):
             if len(file_name_list) != 1:
                 raise Exception("no model {0}".format(load))
             options["load"] = int(load)
+
+    additional_options = Config.get_player(name, "options", default={})
+    options = dict(options, **additional_options)
 
     return DeepLearningPlayer(game_config, name=name, options = options)
