@@ -1,7 +1,7 @@
 import random
 import os
 import numpy as np
-from chainer import Chain, Variable, optimizers, serializers
+from chainer import Chain, Variable, optimizers, serializers, using_config
 import chainer.links as L
 import chainer.functions as F
 
@@ -17,6 +17,8 @@ class DeepLearningPlayer(Player):
         self.checkpoint = options.get("checkpoint_interval") or 10000
         self.load_checkpoint = options.get("load")
         self.train_piece = options.get("train_piece") or "single"
+        self.model_type = options.get("model") or "Mini"
+        self.optimizer_type = options.get("optimizer") or "Adam"
         self.train_count = 0
         self.policy = build_policy(options.get("policy") or { "mode": "linear_epsilon_greedy", "max": { "count": 0 , "probability": 1.0 }, "min": { "count": 100000, "probability": 0.1 } })
         self.set_mode(options.get("mode") or "train")
@@ -87,8 +89,20 @@ class DeepLearningPlayer(Player):
         return movable[index_argmax]
 
     def setup_brain(self):
-        self.brain = Brain()
-        self.brain_optimizer = optimizers.Adam()
+        if self.model_type == "Mini":
+            self.brain = ModelMini()
+        elif self.model_type == "Pro":
+            self.brain = ModelPro()
+        else:
+            raise PlayerException("no such model: " + self.model_type)
+
+        if self.optimizer_type == "Adam":
+            self.brain_optimizer = optimizers.Adam()
+        elif self.optimizer_type == "SGD":
+            self.brain_optimizer = optimizers.SGD()
+        else:
+            raise PlayerException("no such optimizer: " + self.optimizer_type)
+
         self.brain_optimizer.setup(self.brain)
         if self.load_checkpoint is not None:
             self.load()
@@ -154,9 +168,9 @@ def build_policy(parameter):
 
     return lambda x: np.clip(dp / dc * (x - max_count) + max_probability, min_probability, max_probability) < random.random()
 
-class Brain(Chain):
+class ModelMini(Chain):
     def __init__(self):
-        super(Brain, self).__init__(
+        super(ModelMini, self).__init__(
             conv1 = L.Convolution2D(1, 3, ksize=3, pad=1),
             conv2 = L.Convolution2D(3, 2, ksize=3, pad=1),
             l1 = L.Linear(None, 32),
@@ -179,3 +193,47 @@ class Brain(Chain):
 
     def loss(self, x, y):
         return F.mean_squared_error(self.forward(x), Variable(y))
+
+class ModelPro(Chain):
+    def __init__(self):
+        super(ModelPro, self).__init__(
+            conv1 = L.Convolution2D(1, 3, ksize=3, pad=1),
+            conv2 = L.Convolution2D(3, 16, ksize=3, pad=1),
+            conv3 = L.Convolution2D(16, 32, ksize=3, pad=1),
+            conv4 = L.Convolution2D(32, 64, ksize=3, pad=1),
+            l1 = L.Linear(None, 1024),
+            l2 = L.Linear(1024, 128),
+            l3 = L.Linear(128, 32),
+            l4 = L.Linear(32, 1)
+        )
+
+    def __call__(self, x_data):
+        with using_config("train", False):
+            h = self.forward(x_data)
+        return F.identity(h)
+
+    def forward(self, x_data):
+        x = Variable(x_data)
+        h = F.relu(self.conv1(x))
+        h = F.dropout(h, ratio=0.3)
+        h = F.relu(self.conv2(h))
+        h = F.dropout(h, ratio=0.3)
+        h = F.relu(self.conv3(h))
+        h = F.dropout(h, ratio=0.3)
+        h = F.relu(self.conv4(h))
+        h = F.max_pooling_2d(h, 2)
+        h = F.relu(self.l1(h))
+        h = F.dropout(h, ratio=0.3)
+        h = F.relu(self.l2(h))
+        h = F.dropout(h, ratio=0.3)
+        h = F.relu(self.l3(h))
+        h = F.dropout(h, ratio=0.3)
+        return self.l4(h)
+
+    def argmax(self, x_data):
+        h = self(x_data)
+        length = len(h)
+        return h.data.reshape((length,)).argmax()
+
+    def loss(self, x_data, y_data):
+        return F.mean_squared_error(self.forward(x_data), Variable(y_data))
