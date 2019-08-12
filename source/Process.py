@@ -6,7 +6,6 @@ import re
 import Config
 from Piece import Piece
 from RandomPlayer import RandomPlayer
-from DeepLearningPlayer import DeepLearningPlayer
 from Game import Game
 
 DEBUG = False
@@ -80,11 +79,18 @@ def build_player(game_config, name, process_name):
     elif engine == "DeepLearningPlayer":
         mode = Config.get_process(process_name, "players", name, "mode", default="test")
         return build_deep_learning_player(game_config, name, mode=mode)
+    elif engine == "KerasPlayer":
+        mode = Config.get_process(process_name, "players", name, "mode", default="test")
+        return build_keras_player(game_config, name, mode=mode)
+    else:
+        raise Exception("not implemented")
 
 def build_random_player(game_config, name):
     return RandomPlayer(game_config, name=name)
 
 def build_deep_learning_player(game_config, name, mode="test"):
+    from DeepLearningPlayer import DeepLearningPlayer
+
     options = { "mode": mode }
     load = Config.get_player(name, "load", must=True)
     if load is not None:
@@ -107,3 +113,29 @@ def build_deep_learning_player(game_config, name, mode="test"):
     options = dict(options, **additional_options)
 
     return DeepLearningPlayer(game_config, name=name, options = options)
+
+def build_keras_player(game_config, name, mode="test"):
+    from KerasPlayer import KerasPlayer
+
+    options = { "mode": mode }
+    load = Config.get_player(name, "load", must=True)
+    if load is not None:
+        model_dir = Config.get_global("model_directory", default="model")
+        if load == "max":
+            filename_list = glob.glob("{0}/{1}/model_*.h5".format(model_dir, name))
+            if len(filename_list) > 0:
+                max_count = 0
+                for filename in filename_list:
+                    match = re.search(r"model_(\d+)\.h5", filename)
+                    max_count = max(max_count, int(match.group(1)))
+                options["load"] = max_count
+        else:
+            filename_list = glob.glob("{0}/{1}/model_{2}.h5".format(model_dir, name, load))
+            if len(file_name_list) != 1:
+                raise Exception("no model {0}".format(load))
+            options["load"] = int(load)
+
+    additional_options = Config.get_player(name, "options", default={})
+    options = dict(options, **additional_options)
+
+    return KerasPlayer(game_config, name=name, options = options)

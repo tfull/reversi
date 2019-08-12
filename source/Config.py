@@ -8,7 +8,7 @@ class ConfigError(Exception):
 def load():
     global DATA
     with open("config.yml", "r") as f:
-        DATA = yaml.load(f)
+        DATA = yaml.load(f, Loader = yaml.FullLoader)
 
 def get(names, must=False, default=None):
     global DATA
