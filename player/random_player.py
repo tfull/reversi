@@ -1,8 +1,8 @@
 import random
 
-from Player import Player
+from .default_player import DefaultPlayer
 
-class RandomPlayer(Player):
+class RandomPlayer(DefaultPlayer):
     def __init__(self, config, piece=None, name="random", options=None):
         super(RandomPlayer, self).__init__(config, piece)
         options = {} if options is None else options

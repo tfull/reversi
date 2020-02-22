@@ -1,6 +1,6 @@
 import sys
 
-from Process import Process
+from system.process import Process
 
 def main(process_name):
     process = Process(process_name)

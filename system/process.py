@@ -3,12 +3,12 @@ import random
 import sys
 import re
 
-import Config
-from Piece import Piece
-from RandomPlayer import RandomPlayer
-from Game import Game
+from .config import Config
+from ..core import *
+
 
 DEBUG = False
+
 
 class Process:
     def __init__(self, name):
@@ -86,6 +86,7 @@ def build_player(game_config, name, process_name):
         raise Exception("not implemented")
 
 def build_random_player(game_config, name):
+    from ..player.random_player import RandomPlayer
     return RandomPlayer(game_config, name=name)
 
 def build_deep_learning_player(game_config, name, mode="test"):

@@ -5,10 +5,11 @@ from chainer import Chain, Variable, optimizers, serializers, using_config
 import chainer.links as L
 import chainer.functions as F
 
-import Config
-from Player import *
+from ..system.config import Config
+from .exception import PlayerException
+from .default_player import DefaultPlayer
 
-class DeepLearningPlayer(Player):
+class DeepLearningPlayer(DefaultPlayer):
     def __init__(self, config, piece=None, name="deep", options = None):
         super(DeepLearningPlayer, self).__init__(config, piece)
         self.name = name

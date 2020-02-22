@@ -1,8 +1,8 @@
 import numpy as np
 
-from Piece import Piece
-from Board import Board
-from RandomPlayer import RandomPlayer
+from .piece import Piece
+from .board import Board
+
 
 class Game():
     def __init__(self, config, player_black, player_white):

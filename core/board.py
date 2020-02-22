@@ -1,4 +1,4 @@
-from Piece import Piece
+from .piece import Piece
 
 class Board():
     def __init__(self, size):

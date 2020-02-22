@@ -1,9 +1,7 @@
-from Board import Board
+from ..core.board import Board
 
-class PlayerException(Exception):
-    pass
 
-class Player():    
+class DefaultPlayer():
     def __init__(self, config, piece, name="basic"):
         self.config = config
         self.name = name
