@@ -13,6 +13,7 @@ class DeepLearningPlayer(DefaultPlayer):
     def __init__(self, config, piece=None, name="deep", options = None):
         super(DeepLearningPlayer, self).__init__(config, piece)
         self.name = name
+        self.engine = "DeepLearningPlayer"
         options = {} if options is None else options
         self.batch_size = options.get("batch_size") or 100
         self.checkpoint = options.get("checkpoint_interval") or 10000

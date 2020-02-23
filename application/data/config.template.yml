@@ -1,7 +1,7 @@
 global:
     game:
         board_size: 8
-    model_directory: model
+    model_directory: application/data/model
 
 players:
     debug_dl:
@@ -24,6 +24,8 @@ players:
     zero2:
         engine: DeepLearningPlayer
         load: max
+    challenger:
+        engine: GuiPlayer
 
 processes:
     debug:
@@ -66,3 +68,11 @@ processes:
                 mode: test
             random: null
         times: 10000
+
+    test_gui:
+        players:
+            random: null
+            challenger: null
+        game:
+            board_size: 8
+        times: 1

@@ -1,12 +1,13 @@
 from ..core.board import Board
 
 
-class DefaultPlayer():
+class DefaultPlayer:
     def __init__(self, config, piece, name="basic"):
         self.config = config
         self.name = name
         self.initialize(piece)
         self.game_count = 0
+        self.engine = "DefaultPlayer"
 
     def initialize(self, piece):
         self.board = Board(self.config["board_size"])

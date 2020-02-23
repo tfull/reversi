@@ -7,6 +7,7 @@ class RandomPlayer(DefaultPlayer):
         super(RandomPlayer, self).__init__(config, piece)
         options = {} if options is None else options
         self.name = name
+        self.engine = "RandomPlayer"
 
     def select(self):
         movable = self.board.get_movable(self.piece)

@@ -14,6 +14,7 @@ class KerasPlayer(DefaultPlayer):
         super(KerasPlayer, self).__init__(config, piece)
         self.name = name
         options = {} if options is None else options
+        self.engine = "KerasPlayer"
         self.batch_size = options.get("batch_size") or 100
         self.checkpoint = options.get("checkpoint_interval") or 10000
         self.load_checkpoint = options.get("load")

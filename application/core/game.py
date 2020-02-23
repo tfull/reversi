@@ -4,7 +4,7 @@ from .piece import Piece
 from .board import Board
 
 
-class Game():
+class Game:
     def __init__(self, config, player_black, player_white):
         self.board = Board(config["board_size"])
         self.player_black = player_black
