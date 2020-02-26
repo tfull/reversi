@@ -1,3 +1,4 @@
+import tkinter as tk
 import queue
 import threading
 
@@ -13,11 +14,20 @@ class GuiPlayer(DefaultPlayer):
         self.engine = "GuiPlayer"
         self.config = config
 
-    def set_queue(self, read_queue, write_queue):
-        self.read_queue = read_queue
-        self.write_queue = write_queue
+        self.width = 1280
+        self.height = 720
 
-    """
+        self.canvas = tk.Canvas(width = self.width, height = self.height)
+        self.canvas.pack()
+
+        def click(event):
+            self.click(event.x, event.y)
+
+        self.canvas.bind("<Button-1>", click)
+        self.queue = queue.Queue()
+        self.lock = threading.Lock()
+        self.status = "suspend"
+
     def game_loop(self):
         self.gui_color()
         if self.piece == Piece.BLACK:
@@ -31,43 +41,20 @@ class GuiPlayer(DefaultPlayer):
 
         game = Game(self.config, self if self.piece == Piece.BLACK else self.opponent, self.opponent if self.piece == Piece.BLACK else self)
         game.play()
-    """
+
 
     def move(self, piece, x, y):
         super(GuiPlayer, self).move(piece, x, y)
-        # + sleep
-        self.write_queue.put("flip")
-        print("player: move", (x, y), self.piece.description())
-        # self.render_field()
+        self.render_field()
 
     def select(self):
         movable = self.board.get_movable(self.piece)
-
-        while True:
-            try:
-                self.read_queue.get_nowait()
-            except queue.Empty:
-                break
-
-        while True:
-            action = self.read_queue.get()
-            print("player:", action, str(movable))
-            if action in movable:
-                print("player: act")
-                return action
-
-            if action == "pass" and len(movable) == 0:
-                return None
-
-        """
         import random
         if len(movable) > 0:
             return random.choice(movable)
         else:
             return None
-        """
 
-    """
     def render_field(self):
         h = self.height
         self.canvas.create_rectangle(0, 0, h, h, fill = "gray")
@@ -120,4 +107,3 @@ class GuiPlayer(DefaultPlayer):
 
     def mainloop(self):
         self.canvas.mainloop()
-    """

@@ -1,7 +1,7 @@
 import sys
 import threading
 
-from application.system import Config, Process
+from application.system import Config, Process, GuiAgent
 
 def main(process_name):
     process = Process(process_name)
@@ -17,11 +17,17 @@ def main(process_name):
     else:
         raise Exception("no gui player")
 
+    gui_agent = GuiAgent(you, opponent)
+
+    """
     you.set_opponent(opponent)
     thread = threading.Thread(target = you.game_loop)
     thread.start()
     you.mainloop()
     thread.join()
+    """
+
+    gui_agent.main_loop()
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
