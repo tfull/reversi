@@ -7,7 +7,7 @@ from ..core import *
 class Scene:
     COLOR = 0
     BOARD = 1
-    GAMESET = 2
+    RESULT = 2
 
 class GuiAgent:
     WIDTH = 1280
@@ -37,6 +37,11 @@ class GuiAgent:
         self.draw_thread = threading.Thread(target = self.draw_loop)
         self.draw_thread.start()
 
+        self.game_thread = None
+
+
+        # self.element = {}
+
         self.click_valid = True
 
     def click(self, x, y):
@@ -54,7 +59,8 @@ class GuiAgent:
             self.act_scene_color(x, y)
         elif self.scene == Scene.BOARD:
             self.act_scene_board(x, y)
-
+        elif self.scene == Scene.RESULT:
+            self.act_scene_result(x, y)
 
     def act_scene_color(self, x, y):
         h = self.HEIGHT
@@ -68,32 +74,43 @@ class GuiAgent:
             self.other_player.initialize(Piece.BLACK)
             self.game = Game(self.gui_player.config, self.other_player, self.gui_player)
 
-        thread = threading.Thread(target = self.game.play)
-        thread.start()
+        if self.game_thread is not None:
+            self.game_thread.join()
+
+        self.game_thread = threading.Thread(target = self.game.play)
+        self.game_thread.start()
+
         self.set_scene(Scene.BOARD)
 
     def act_scene_board(self, x, y):
         print("act_scene_board", x, y)
+
         h = self.HEIGHT
         size = self.game.board.size
         margin = h // 10
         cell_size = (8 * h) // (10 * size)
         x_board = (x - margin) // cell_size
         y_board = (y - margin) // cell_size
+
         print("x_board:", x_board, ", y_board:", y_board)
+
         if x_board in range(size) and y_board in range(size):
             self.write_queue.put((x_board, y_board))
+
+    def act_scene_result(self, x, y):
+        pass
 
     def set_scene(self, scene):
         self.scene = scene
         self.draw_scene(scene)
-
 
     def draw_scene(self, scene):
         if scene == Scene.COLOR:
             self.draw_scene_color()
         elif scene == Scene.BOARD:
             self.draw_scene_board()
+        elif scene == Scene.RESULT:
+            self.draw_scene_result()
 
     def draw_scene_color(self):
         h = self.HEIGHT
@@ -121,12 +138,19 @@ class GuiAgent:
 
                 self.canvas.create_rectangle(left, top, left + cell_size, top + cell_size, fill = color)
 
+    def draw_scene_result(self):
+        h = self.HEIGHT
+        self.draw_scene_board()
+        self.canvas.create_rectangle(h, 0, (11 * h) // 10, h // 10, fill = "red")
+
     def draw_loop(self):
         while True:
             item = self.read_queue.get()
 
             if item == "end":
                 return
+            elif item == "complete":
+                self.set_scene(Scene.RESULT)
             else:
                 print("draw_loop:", item)
                 self.draw_scene_board()
@@ -137,5 +161,9 @@ class GuiAgent:
 
     def quit(self):
         self.read_queue.put("end")
-        # kill game thread
+        self.write_queue.put("surrender")
+
+        if self.game_thread is not None:
+            self.game_thread.join()
+
         self.root.destroy()

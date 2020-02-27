@@ -19,6 +19,14 @@ class Board():
     def get_movable(self, piece):
         return [(x, y) for y in range(self.size) for x in range(self.size) if self.move(piece, x, y, test=True)]
 
+    def full(self):
+        for i in range(self.size):
+            for j in range(self.size):
+                if self.board[i][j] == Piece.PLAIN:
+                    return False
+
+        return True
+
     def undo(self):
         if len(self.history) > 0:
             piece, xy_list = self.history[-1]
