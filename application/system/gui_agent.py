@@ -20,6 +20,8 @@ class GuiAgent:
         self.canvas = tk.Canvas(self.root, width = self.WIDTH, height = self.HEIGHT)
         self.canvas.pack()
 
+        self.draw_count = (0, 0)
+
         self.gui_player = gui_player
         self.other_player = other_player
 
@@ -27,12 +29,6 @@ class GuiAgent:
             self.click(event.x, event.y)
 
         self.canvas.bind("<Button-1>", click)
-
-        self.element = {
-            Scene.COLOR: [],
-            Scene.BOARD: [],
-            Scene.RESULT: []
-        }
 
         self.set_scene(Scene.COLOR)
 
@@ -44,8 +40,6 @@ class GuiAgent:
         self.draw_thread.start()
 
         self.game_thread = None
-
-        self.draw_count = (0, 0) # now tag number, last deleted tag number
 
         self.click_valid = True
 
@@ -120,53 +114,38 @@ class GuiAgent:
             self.draw_scene_result()
 
     def draw_scene_color(self):
-        if len(self.element[Scene.RESULT]) > 0:
-            old = self.element[Scene.RESULT]
-            self.element[Scene.RESULT] = []
-        else:
-            old = []
+        latest = self.update_draw_count()
 
         h = self.HEIGHT
 
-        black = self.canvas.create_rectangle(0, 0, h // 2, h, fill = "black")
-        white = self.canvas.create_rectangle(h // 2, 0, h, h, fill = "white")
+        tag = "draw_{}".format(latest)
+        black = self.canvas.create_rectangle(0, 0, h // 2, h, fill = "black", tags = tag)
+        white = self.canvas.create_rectangle(h // 2, 0, h, h, fill = "white", tags = tag)
 
-        self.element[Scene.COLOR] = [black, white]
-
-        self.delete_elements(old)
+        self.delete_old_elements()
 
     def draw_scene_board(self):
-        old = []
-        if len(self.element[Scene.COLOR]) > 0:
-            old += self.element[Scene.COLOR]
-            self.element[Scene.COLOR] = []
-
-        if len(self.element[Scene.BOARD]) > 0:
-            old += self.element[Scene.BOARD]
-            self.element[Scene.BOARD] = []
-
-        self.draw_board(self.element[Scene.BOARD])
-
-        self.delete_elements(old)
+        latest = self.update_draw_count()
+        self.draw_board(latest)
+        self.delete_old_elements()
 
     def draw_scene_result(self):
-        if len(self.element[Scene.BOARD]) > 0:
-            old = self.element[Scene.BOARD]
-            self.element[Scene.BOARD] = []
-        else:
-            old = []
+        latest = self.update_draw_count()
+
+        tag = "draw_{}".format(latest)
 
         h = self.HEIGHT
-        self.draw_board(self.element[Scene.RESULT])
-        button = self.canvas.create_rectangle(h, 0, (11 * h) // 10, h // 10, fill = "red")
-        self.element[Scene.RESULT].append(button)
-        self.delete_elements(old)
+        self.draw_board(latest)
+        self.canvas.create_rectangle(h, 0, (11 * h) // 10, h // 10, fill = "red", tags = tag)
+        self.delete_old_elements()
 
-    def draw_board(self, elements):
+    def draw_board(self, count):
         h = self.HEIGHT
         size = self.game.board.size
         margin = h // 10
         cell_size = (8 * h) // (10 * size)
+
+        tag = "draw_{}".format(count)
 
         for i in range(size):
             for j in range(size):
@@ -181,8 +160,7 @@ class GuiAgent:
                 else:
                     color = "green"
 
-                cell = self.canvas.create_rectangle(left, top, left + cell_size, top + cell_size, fill = color)
-                elements.append(cell)
+                self.canvas.create_rectangle(left, top, left + cell_size, top + cell_size, fill = color, tags = tag)
 
     def draw_loop(self):
         while True:
@@ -196,9 +174,15 @@ class GuiAgent:
                 print("draw_loop:", item)
                 self.draw_scene_board()
 
-    def delete_elements(self, elements):
-        for e in elements:
-            self.canvas.delete(e)
+    def update_draw_count(self):
+        latest, deleted = self.draw_count
+        self.draw_count = (latest + 1, deleted)
+        return latest + 1
+
+    def delete_old_elements(self):
+        latest, deleted = self.draw_count
+        for count in range(deleted, latest):
+            self.canvas.delete("draw_{}".format(count))
 
     def main_loop(self):
         self.canvas.mainloop()
