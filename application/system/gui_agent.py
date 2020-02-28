@@ -1,10 +1,11 @@
 import tkinter as tk
 import queue
 import threading
+from enum import Enum
 
 from ..core import *
 
-class Scene:
+class Scene(Enum):
     COLOR = 0
     BOARD = 1
     RESULT = 2
@@ -183,6 +184,9 @@ class GuiAgent:
         latest, deleted = self.draw_count
         for count in range(deleted, latest):
             self.canvas.delete("draw_{}".format(count))
+            deleted = count
+
+        self.draw_count = (latest, deleted)
 
     def main_loop(self):
         self.canvas.mainloop()
