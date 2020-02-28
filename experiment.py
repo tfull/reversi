@@ -1,6 +1,6 @@
 import sys
 
-from Process import Process
+from application.system.process import Process
 
 def main(process_name):
     process = Process(process_name)
@@ -8,5 +8,7 @@ def main(process_name):
 
 if __name__ == '__main__':
     if len(sys.argv) <= 1:
-        sys.stderr.write("Error: 2 arguments are required\n")
+        sys.stderr.write("Error: few arguments\n")
+        sys.exit(1)
+
     main(sys.argv[1])

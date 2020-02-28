@@ -5,14 +5,16 @@ import random
 import os
 import numpy as np
 
-import Config
-from Player import Player
+from ..core.config import Config
+from .exception import PlayerException
+from .default_player import DefaultPlayer
 
-class KerasPlayer(Player):
+class KerasPlayer(DefaultPlayer):
     def __init__(self, config, piece = None, name = "keras", options = None):
         super(KerasPlayer, self).__init__(config, piece)
         self.name = name
         options = {} if options is None else options
+        self.engine = "KerasPlayer"
         self.batch_size = options.get("batch_size") or 100
         self.checkpoint = options.get("checkpoint_interval") or 10000
         self.load_checkpoint = options.get("load")

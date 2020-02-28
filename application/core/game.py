@@ -1,16 +1,17 @@
 import numpy as np
 
-from Piece import Piece
-from Board import Board
-from RandomPlayer import RandomPlayer
+from .piece import Piece
+from .board import Board
 
-class Game():
+
+class Game:
     def __init__(self, config, player_black, player_white):
         self.board = Board(config["board_size"])
         self.player_black = player_black
         self.player_white = player_white
         self.turn_piece = Piece.BLACK
         self.done = False
+        self.surrender = None
 
     def play(self):
         flag_pass = False
@@ -18,7 +19,14 @@ class Game():
         while True:
             player = player_hash[self.turn_piece]
             move = player.select()
+
+            if move == "surrender":
+                self.complete()
+                self.surrender = self.turn_piece
+                return
+
             valid_moves = self.board.get_movable(self.turn_piece)
+
             if move is None:
                 if len(valid_moves) > 0:
                     raise Exception("invalid pass")
@@ -40,6 +48,7 @@ class Game():
                 self.board.move(self.turn_piece, x, y)
                 self.player_black.move(self.turn_piece, x, y)
                 self.player_white.move(self.turn_piece, x, y)
+
             self.turn_piece = self.turn_piece.opposite()
 
     def count(self):
