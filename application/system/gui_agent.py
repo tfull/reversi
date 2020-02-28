@@ -28,6 +28,12 @@ class GuiAgent:
 
         self.canvas.bind("<Button-1>", click)
 
+        self.element = {
+            Scene.COLOR: [],
+            Scene.BOARD: [],
+            Scene.RESULT: []
+        }
+
         self.set_scene(Scene.COLOR)
 
         self.write_queue = queue.Queue()
@@ -39,8 +45,7 @@ class GuiAgent:
 
         self.game_thread = None
 
-
-        # self.element = {}
+        self.draw_count = (0, 0) # now tag number, last deleted tag number
 
         self.click_valid = True
 
@@ -98,11 +103,13 @@ class GuiAgent:
             self.write_queue.put((x_board, y_board))
 
     def act_scene_result(self, x, y):
-        pass
+        h = self.HEIGHT
+        if x >= h and x < (11 * h) // 10 and y >= 0 and y <= h // 10:
+            self.set_scene(Scene.COLOR)
 
     def set_scene(self, scene):
-        self.scene = scene
         self.draw_scene(scene)
+        self.scene = scene
 
     def draw_scene(self, scene):
         if scene == Scene.COLOR:
@@ -113,11 +120,49 @@ class GuiAgent:
             self.draw_scene_result()
 
     def draw_scene_color(self):
+        if len(self.element[Scene.RESULT]) > 0:
+            old = self.element[Scene.RESULT]
+            self.element[Scene.RESULT] = []
+        else:
+            old = []
+
         h = self.HEIGHT
-        self.canvas.create_rectangle(0, 0, h // 2, h, fill = "black")
-        self.canvas.create_rectangle(h / 2, 0, h, h, fill = "white")
+
+        black = self.canvas.create_rectangle(0, 0, h // 2, h, fill = "black")
+        white = self.canvas.create_rectangle(h // 2, 0, h, h, fill = "white")
+
+        self.element[Scene.COLOR] = [black, white]
+
+        self.delete_elements(old)
 
     def draw_scene_board(self):
+        old = []
+        if len(self.element[Scene.COLOR]) > 0:
+            old += self.element[Scene.COLOR]
+            self.element[Scene.COLOR] = []
+
+        if len(self.element[Scene.BOARD]) > 0:
+            old += self.element[Scene.BOARD]
+            self.element[Scene.BOARD] = []
+
+        self.draw_board(self.element[Scene.BOARD])
+
+        self.delete_elements(old)
+
+    def draw_scene_result(self):
+        if len(self.element[Scene.BOARD]) > 0:
+            old = self.element[Scene.BOARD]
+            self.element[Scene.BOARD] = []
+        else:
+            old = []
+
+        h = self.HEIGHT
+        self.draw_board(self.element[Scene.RESULT])
+        button = self.canvas.create_rectangle(h, 0, (11 * h) // 10, h // 10, fill = "red")
+        self.element[Scene.RESULT].append(button)
+        self.delete_elements(old)
+
+    def draw_board(self, elements):
         h = self.HEIGHT
         size = self.game.board.size
         margin = h // 10
@@ -136,12 +181,8 @@ class GuiAgent:
                 else:
                     color = "green"
 
-                self.canvas.create_rectangle(left, top, left + cell_size, top + cell_size, fill = color)
-
-    def draw_scene_result(self):
-        h = self.HEIGHT
-        self.draw_scene_board()
-        self.canvas.create_rectangle(h, 0, (11 * h) // 10, h // 10, fill = "red")
+                cell = self.canvas.create_rectangle(left, top, left + cell_size, top + cell_size, fill = color)
+                elements.append(cell)
 
     def draw_loop(self):
         while True:
@@ -154,6 +195,10 @@ class GuiAgent:
             else:
                 print("draw_loop:", item)
                 self.draw_scene_board()
+
+    def delete_elements(self, elements):
+        for e in elements:
+            self.canvas.delete(e)
 
     def main_loop(self):
         self.canvas.mainloop()
