@@ -19,6 +19,7 @@ class GuiAgent:
     def __init__(self, gui_player, other_player):
         self.root = tk.Tk()
         self.root.protocol("WM_DELETE_WINDOW", self.quit)
+        self.root.title("Reversi")
 
         self.canvas = tk.Canvas(self.root, width = self.WIDTH, height = self.HEIGHT)
         self.canvas.pack()
@@ -143,6 +144,7 @@ class GuiAgent:
         self.delete_old_elements()
 
     def draw_board(self, count):
+        piece_margin = 2
         h = self.HEIGHT
         size = self.game.board.size
         margin = h // 10
@@ -156,14 +158,18 @@ class GuiAgent:
                 left = margin + j * cell_size
                 piece = self.game.board.get(j, i)
 
-                if piece == Piece.BLACK:
-                    color = "black"
-                elif piece == Piece.WHITE:
-                    color = "white"
-                else:
-                    color = "green"
+                self.canvas.create_rectangle(left, top, left + cell_size, top + cell_size, fill = "green", outline = "#004400", tags = tag)
 
-                self.canvas.create_rectangle(left, top, left + cell_size, top + cell_size, fill = color, tags = tag)
+                if piece == Piece.BLACK:
+                    pm = piece_margin
+                    color = "black"
+                    border = "white"
+                    self.canvas.create_oval(left + pm, top + pm, left + cell_size - pm, top + cell_size - pm, fill = color, outline = border, tags = tag)
+                elif piece == Piece.WHITE:
+                    pm = piece_margin
+                    color = "white"
+                    border = "black"
+                    self.canvas.create_oval(left + pm, top + pm, left + cell_size - pm, top + cell_size - pm, fill = color, outline = border, tags = tag)
 
     def draw_loop(self):
         while True:
