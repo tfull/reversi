@@ -5,10 +5,12 @@ from enum import Enum
 
 from ..core import *
 
+
 class Scene(Enum):
     COLOR = 0
     BOARD = 1
     RESULT = 2
+
 
 class GuiAgent:
     WIDTH = 1280

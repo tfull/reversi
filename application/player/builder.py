@@ -3,18 +3,14 @@ from ..system import Config
 class Builder:
 
     @classmethod
-    def build_player(cls, game_config, name, process_name):
+    def build_player(cls, game_config, name, mode = "test"):
         engine = Config.get_player(name, "engine")
         if engine == "RandomPlayer":
             return cls.build_random_player(game_config, name)
         elif engine == "DeepLearningPlayer":
-            mode = Config.get_process(process_name, "players", name, "mode", default="test")
-            return cls.build_deep_learning_player(game_config, name, mode=mode)
+            return cls.build_deep_learning_player(game_config, name, mode = mode)
         elif engine == "KerasPlayer":
-            mode = Config.get_process(process_name, "players", name, "mode", default="test")
-            return cls.build_keras_player(game_config, name, mode=mode)
-        elif engine == "GuiPlayer":
-            return cls.build_gui_player(game_config, name)
+            return cls.build_keras_player(game_config, name, mode = mode)
         else:
             raise Exception("not implemented")
 
