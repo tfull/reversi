@@ -21,7 +21,8 @@ class Process:
         self.times = Config.get_process(self.name, "times", must=True)
         self.players = {}
         for name in Config.get_process(self.name, "players", must=True):
-            self.players[name] = Builder.build_player(self.game_config, name, self.name)
+            mode = Config.get_process(self.name, "players", name, "mode", default = "test")
+            self.players[name] = Builder.build_player(self.game_config, name, mode)
 
     def allocate_piece(self):
         first = Config.get_process(self.name, "first", default="random")

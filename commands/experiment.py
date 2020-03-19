@@ -1,3 +1,5 @@
+import _common
+
 import sys
 
 from application.system.process import Process

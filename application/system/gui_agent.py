@@ -5,10 +5,12 @@ from enum import Enum
 
 from ..core import *
 
+
 class Scene(Enum):
     COLOR = 0
     BOARD = 1
     RESULT = 2
+
 
 class GuiAgent:
     WIDTH = 1280
@@ -17,6 +19,7 @@ class GuiAgent:
     def __init__(self, gui_player, other_player):
         self.root = tk.Tk()
         self.root.protocol("WM_DELETE_WINDOW", self.quit)
+        self.root.title("Reversi")
 
         self.canvas = tk.Canvas(self.root, width = self.WIDTH, height = self.HEIGHT)
         self.canvas.pack()
@@ -107,40 +110,38 @@ class GuiAgent:
         self.scene = scene
 
     def draw_scene(self, scene):
-        if scene == Scene.COLOR:
-            self.draw_scene_color()
-        elif scene == Scene.BOARD:
-            self.draw_scene_board()
-        elif scene == Scene.RESULT:
-            self.draw_scene_result()
-
-    def draw_scene_color(self):
         latest = self.update_draw_count()
 
+        if scene == Scene.COLOR:
+            self.draw_scene_color(latest)
+        elif scene == Scene.BOARD:
+            self.draw_scene_board(latest)
+        elif scene == Scene.RESULT:
+            self.draw_scene_result(latest)
+        else:
+            raise Exception("not implemented")
+
+        self.delete_old_elements()
+
+    def draw_scene_color(self, latest):
         h = self.HEIGHT
 
         tag = "draw_{}".format(latest)
         black = self.canvas.create_rectangle(0, 0, h // 2, h, fill = "black", tags = tag)
         white = self.canvas.create_rectangle(h // 2, 0, h, h, fill = "white", tags = tag)
 
-        self.delete_old_elements()
-
-    def draw_scene_board(self):
-        latest = self.update_draw_count()
+    def draw_scene_board(self, latest):
         self.draw_board(latest)
-        self.delete_old_elements()
 
-    def draw_scene_result(self):
-        latest = self.update_draw_count()
-
+    def draw_scene_result(self, latest):
         tag = "draw_{}".format(latest)
 
         h = self.HEIGHT
         self.draw_board(latest)
         self.canvas.create_rectangle(h, 0, (11 * h) // 10, h // 10, fill = "red", tags = tag)
-        self.delete_old_elements()
 
     def draw_board(self, count):
+        piece_margin = 2
         h = self.HEIGHT
         size = self.game.board.size
         margin = h // 10
@@ -148,20 +149,26 @@ class GuiAgent:
 
         tag = "draw_{}".format(count)
 
+        self.canvas.create_rectangle(margin - 3, margin - 3, h - margin + 3, h - margin + 3, fill = "#004400", width = 0, tags = tag)
+
         for i in range(size):
             for j in range(size):
                 top = margin + i * cell_size
                 left = margin + j * cell_size
                 piece = self.game.board.get(j, i)
 
-                if piece == Piece.BLACK:
-                    color = "black"
-                elif piece == Piece.WHITE:
-                    color = "white"
-                else:
-                    color = "green"
+                self.canvas.create_rectangle(left, top, left + cell_size, top + cell_size, fill = "green", outline = "#004400", tags = tag)
 
-                self.canvas.create_rectangle(left, top, left + cell_size, top + cell_size, fill = color, tags = tag)
+                if piece == Piece.BLACK:
+                    pm = piece_margin
+                    color = "black"
+                    border = "white"
+                    self.canvas.create_oval(left + pm, top + pm, left + cell_size - pm, top + cell_size - pm, fill = color, outline = border, tags = tag)
+                elif piece == Piece.WHITE:
+                    pm = piece_margin
+                    color = "white"
+                    border = "black"
+                    self.canvas.create_oval(left + pm, top + pm, left + cell_size - pm, top + cell_size - pm, fill = color, outline = border, tags = tag)
 
     def draw_loop(self):
         while True:
@@ -173,7 +180,8 @@ class GuiAgent:
                 self.set_scene(Scene.RESULT)
             else:
                 print("draw_loop:", item)
-                self.draw_scene_board()
+                latest = self.update_draw_count()
+                self.draw_scene_board(latest)
 
     def update_draw_count(self):
         latest, deleted = self.draw_count
