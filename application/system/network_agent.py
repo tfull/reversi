@@ -76,10 +76,10 @@ class NetworkAgent:
     def devide(self, data):
         if data.get("command") == "/player/list":
             return self.get_player_list()
-        elif data.get("command") == "/player/nominate":
-            return self.nominate_player(data.get("name", ""))
+        elif data.get("command") == "/room/create":
+            return self.create_room(data)
         elif data.get("command") == "/game/start":
-            pass
+            return self.start_game(data.get("color", "random"))
         else:
             return { "command": "/error", "message": "no such command \"{}\"".format(data.get("command", "")) }
 
@@ -105,13 +105,15 @@ class NetworkAgent:
 
         return { "command": "/player/list", "players": result }
 
-    def nominate_player(self, name):
+    def create_room(self, data):
         if self.scene != Scene.LOBBY:
             return {
                 "command": "/error",
                 "message": "incorrect scene: now scene is {}".format(self.scene.name),
-                "error_command": "/player/nominate"
+                "error_command": "/room/create"
             }
+
+        name = data.get("name", name)
 
         player = Config.get_player(name)
 
@@ -119,10 +121,27 @@ class NetworkAgent:
             return {
                 "command": "/error",
                 "message": "no such player \"{}\"".format(name),
-                "error_command": "/player/nominate"
+                "error_command": "/room/create"
             }
 
         screen_name = player.get("screen_name", name)
+
+        d_size = data.get("board_size")
+        p_size = player.get("board_size")
+
+        if d_size is not None and p_size is not None:
+            if d_size != p_size:
+                return {
+                    "command": "/error",
+                    "message": "board_size: got {d} but {p} was required".format(d = d_size, p = p_size),
+                    "error_command": "/room/create"
+                }
+            else:
+                board_size = d_size
+        elif d_size is None and p_size is None:
+            board_size = Config.get_global("game", "board_size", default = 8)
+        else:
+            board_size = d_size or p_size
 
         self.opponent = Builder.build_player(name)
 
@@ -132,9 +151,49 @@ class NetworkAgent:
             "command": "/room/create",
             "opponent": {
                 "name": name,
-                "screen_name": screen_name
+                "screen_name": screen_name,
+                "board_size": board_size
             }
         }
+
+    def start_game(self, color):
+        if self.scene != Scene.COLOR:
+            return {
+                "command": "/error",
+                "message": "incorrect scene: now scene is {}".format(self.scene.name),
+                "error_command": "/game/start"
+            }
+
+        if color == "black":
+            self.you.initialize(Piece.BLACK)
+            self.opponent.initialize(Piece.WHITE)
+            black = self.you
+            white = self.opponent
+        elif color == "white":
+            self.you.initialize(Piece.WHITE)
+            self.opponent.initialize(Piece.BLACK)
+            black = self.opponent
+            white = self.you
+        elif color == "" or color == "random":
+            index = random.randint(0, 1)
+            players = [self.you, self.opponent]
+            players[index].initialize(Piece.BLACK)
+            players[1 - index].initialize(Piece.WHITE)
+            black = players[index]
+            white = players[1 - index]
+        else:
+            return {
+                "command": "/error",
+                "message": "incorrect color {}: \"\", \"black\", \"white\" or \"random\"".format(color)
+            }
+
+        self.game = Game(black, white)
+
+        if self.game_thread is not None:
+            self.game_thread.join()
+
+        self.game_thread = threading.Thread(target = self.game.play)
+        self.game_thread.start()
 
     def serve(self, host, port):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
