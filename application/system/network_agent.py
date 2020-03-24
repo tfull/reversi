@@ -45,19 +45,24 @@ class NetworkAgent:
             item = self.read_queue.get()
 
             if item.get("game", "") == "move":
-                connection.send(connection, {
+                self.send(connection, {
                     "command": "/game/move",
                     "piece": item["piece"],
                     "target": item["target"]
                 })
             elif item.get("game", "") == "movable":
-                connection.send({
+                self.send(connection, {
                     "command": "/game/notice/your_turn",
                     "movable": item["movable"]
                 })
             elif item.get("game", "") == "complete":
-                connection.send(connection, {
+                self.send(connection, {
                     "command": "/game/complete"
+                })
+            elif item.get("game", "") == "error":
+                self.send(connection, {
+                    "command": "/error",
+                    "message": item["message"]
                 })
             elif item.get("system", "") == "end":
                 return
@@ -149,7 +154,7 @@ class NetworkAgent:
                 "error_command": "/room/create"
             }
 
-        name = data.get("name", name)
+        name = data.get("name", "")
 
         player = Config.get_player(name)
 
@@ -179,7 +184,7 @@ class NetworkAgent:
         else:
             board_size = d_size or p_size
 
-        self.opponent = Builder.build_player(name)
+        self.opponent = Builder.build_player({ "board_size": board_size }, name)
 
         self.scene = Scene.COLOR
 
@@ -231,8 +236,18 @@ class NetworkAgent:
         self.game_thread = threading.Thread(target = self.game.play)
         self.game_thread.start()
 
+        self.scene = Scene.BOARD
+
     def action_move(self, data):
-        pass
+        if self.scene != Scene.BOARD:
+            return {
+                "command": "/error",
+                "message": "incorrect scene: game is not started"
+            }
+
+        self.write_queue.put({
+            data.get("value", "")
+        })
 
     def serve(self, host, port):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
