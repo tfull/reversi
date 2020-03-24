@@ -5,6 +5,14 @@ class Piece(Enum):
     BLACK = 1
     WHITE = 2
 
+    def __str__(self):
+        if self == Piece.BLACK:
+            return "black"
+        elif self == Piece.WHITE:
+            return "white"
+        else:
+            return "plain"
+
     def opposite(self):
         if self == Piece.BLACK:
             return Piece.WHITE

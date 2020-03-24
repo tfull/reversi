@@ -29,6 +29,8 @@ class NetworkAgent:
     def handle(self, connection):
         self.scene = Scene.LOBBY
 
+        self.game_thread = None
+
         self.read_thread = threading.Thread(target = self.read_loop, args = (connection,))
         self.receive_thread = threading.Thread(target = self.receive_loop, args = (connection,))
 
@@ -42,8 +44,26 @@ class NetworkAgent:
         while True:
             item = self.read_queue.get()
 
-            if item.get("system") == "end":
+            if item.get("game", "") == "move":
+                connection.send(connection, {
+                    "command": "/game/move",
+                    "piece": item["piece"],
+                    "target": item["target"]
+                })
+            elif item.get("game", "") == "movable":
+                connection.send({
+                    "command": "/game/notice/your_turn",
+                    "movable": item["movable"]
+                })
+            elif item.get("game", "") == "complete":
+                connection.send(connection, {
+                    "command": "/game/complete"
+                })
+            elif item.get("system", "") == "end":
                 return
+
+    def send(self, connection, data):
+        connection.send(bytes(json.dumps(data), "UTF-8") + b"\n")
 
     def receive_loop(self, connection):
         size = 4096
@@ -69,22 +89,35 @@ class NetworkAgent:
                 response = self.devide(json.loads(str(data, "UTF-8")))
 
                 if response is not None:
-                    connection.send(bytes(json.dumps(response), "UTF-8") + b"\n")
+                    self.send(connection, response)
 
         self.quit()
 
     def devide(self, data):
-        if data.get("command") == "/player/list":
+        command = data.get("command", "")
+
+        if command == "/player/list":
             return self.get_player_list()
-        elif data.get("command") == "/room/create":
+        elif command == "/room/create":
             return self.create_room(data)
-        elif data.get("command") == "/game/start":
+        elif command == "/game/start":
             return self.start_game(data.get("color", "random"))
+        elif command == "/game/move":
+            return self.action_move(data)
         else:
-            return { "command": "/error", "message": "no such command \"{}\"".format(data.get("command", "")) }
+            return {
+                "command": "/error",
+                "message": "no such command \"{}\"".format(command)
+            }
 
     def quit(self):
         self.read_queue.put({ "system": "end" })
+
+        if self.scene == Scene.BOARD:
+            self.read_queue.put("surrender")
+
+        if self.game_thread is not None:
+            self.game_thread.join()
 
     def get_player_list(self):
         result = []
@@ -103,7 +136,10 @@ class NetworkAgent:
                 "screen_name": screen_name
             })
 
-        return { "command": "/player/list", "players": result }
+        return {
+            "command": "/player/list",
+            "players": result
+        }
 
     def create_room(self, data):
         if self.scene != Scene.LOBBY:
@@ -194,6 +230,9 @@ class NetworkAgent:
 
         self.game_thread = threading.Thread(target = self.game.play)
         self.game_thread.start()
+
+    def action_move(self, data):
+        pass
 
     def serve(self, host, port):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

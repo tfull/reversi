@@ -19,7 +19,19 @@ class NetworkPlayer(DefaultPlayer):
 
     def move(self, piece, x, y):
         super(NetworkPlayer, self).move(piece, x, y)
-        self.write_queue.put("flip")
+
+        self.write_queue.put({
+            "game": "move",
+            "piece": str(piece),
+            "target": self.history[-1]
+        })
+
+        if piece == self.piece.opposite():
+            self.write_queue.put({
+                "game": "movable",
+                "target": self.board.get_movable(self.piece)
+            })
+
         print("player: move", (x, y), self.piece.description())
 
     def select(self):
@@ -56,4 +68,4 @@ class NetworkPlayer(DefaultPlayer):
 
     def complete(self):
         super(NetworkPlayer, self).complete()
-        self.write_queue.put("complete")
+        self.write_queue.put({ "game": "complete" })
