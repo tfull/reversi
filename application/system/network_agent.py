@@ -1,14 +1,17 @@
 import contextlib
+import enum
 import json
 import queue
+import random
 import socket
 import threading
 
 from .config import Config
+from ..core import *
 from ..player import Builder
 
 
-class Scene:
+class Scene(enum.Enum):
     LOBBY = 0
     COLOR = 1
     BOARD = 2
@@ -53,9 +56,10 @@ class NetworkAgent:
             elif item.get("game", "") == "movable":
                 self.send(connection, {
                     "command": "/game/notice/your_turn",
-                    "movable": item["movable"]
+                    "movable": item["target"]
                 })
             elif item.get("game", "") == "complete":
+                self.scene = Scene.RESULT
                 self.send(connection, {
                     "command": "/game/complete"
                 })
@@ -66,6 +70,8 @@ class NetworkAgent:
                 })
             elif item.get("system", "") == "end":
                 return
+            else:
+                raise Exception("no such command in read_loop")
 
     def send(self, connection, data):
         connection.send(bytes(json.dumps(data), "UTF-8") + b"\n")
@@ -91,10 +97,13 @@ class NetworkAgent:
                 data = buffer[:index + 1]
                 buffer = buffer[index + 1:]
 
-                response = self.devide(json.loads(str(data, "UTF-8")))
+                response, defer = self.devide(json.loads(str(data, "UTF-8")))
 
                 if response is not None:
                     self.send(connection, response)
+
+                if defer is not None:
+                    defer()
 
         self.quit()
 
@@ -102,24 +111,24 @@ class NetworkAgent:
         command = data.get("command", "")
 
         if command == "/player/list":
-            return self.get_player_list()
+            return self.get_player_list(), None
         elif command == "/room/create":
-            return self.create_room(data)
+            return self.create_room(data), None
         elif command == "/game/start":
-            return self.start_game(data.get("color", "random"))
+            return self.start_game(data.get("color", "random")), (lambda: self.game_thread.start())
         elif command == "/game/move":
-            return self.action_move(data)
+            return self.action_move(data), None
         else:
             return {
                 "command": "/error",
                 "message": "no such command \"{}\"".format(command)
-            }
+            }, None
 
     def quit(self):
         self.read_queue.put({ "system": "end" })
 
         if self.scene == Scene.BOARD:
-            self.read_queue.put("surrender")
+            self.write_queue.put("surrender")
 
         if self.game_thread is not None:
             self.game_thread.join()
@@ -184,7 +193,9 @@ class NetworkAgent:
         else:
             board_size = d_size or p_size
 
-        self.opponent = Builder.build_player({ "board_size": board_size }, name)
+        self.now_config = { "board_size": board_size }
+        self.you.reset_config(self.now_config)
+        self.opponent = Builder.build_player(self.now_config, name)
 
         self.scene = Scene.COLOR
 
@@ -198,7 +209,7 @@ class NetworkAgent:
         }
 
     def start_game(self, color):
-        if self.scene != Scene.COLOR:
+        if not (self.scene == Scene.COLOR or self.scene == Scene.RESULT):
             return {
                 "command": "/error",
                 "message": "incorrect scene: now scene is {}".format(self.scene.name),
@@ -218,6 +229,8 @@ class NetworkAgent:
         elif color == "" or color == "random":
             index = random.randint(0, 1)
             players = [self.you, self.opponent]
+            colors = ["black", "white"]
+            color = colors[index]
             players[index].initialize(Piece.BLACK)
             players[1 - index].initialize(Piece.WHITE)
             black = players[index]
@@ -228,15 +241,19 @@ class NetworkAgent:
                 "message": "incorrect color {}: \"\", \"black\", \"white\" or \"random\"".format(color)
             }
 
-        self.game = Game(black, white)
+        self.game = Game(self.now_config, black, white)
 
         if self.game_thread is not None:
             self.game_thread.join()
 
         self.game_thread = threading.Thread(target = self.game.play)
-        self.game_thread.start()
 
         self.scene = Scene.BOARD
+
+        return {
+            "command": "/game/start",
+            "color": color
+        }
 
     def action_move(self, data):
         if self.scene != Scene.BOARD:
@@ -245,9 +262,9 @@ class NetworkAgent:
                 "message": "incorrect scene: game is not started"
             }
 
-        self.write_queue.put({
-            data.get("value", "")
-        })
+        print(data)
+
+        self.write_queue.put(data.get("value", ""))
 
     def serve(self, host, port):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

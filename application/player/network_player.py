@@ -17,20 +17,20 @@ class NetworkPlayer(DefaultPlayer):
         self.read_queue = read_queue
         self.write_queue = write_queue
 
+    def reset_config(self, config):
+        self.config = config
+        super(NetworkPlayer, self).__init__(config, None)
+
     def move(self, piece, x, y):
         super(NetworkPlayer, self).move(piece, x, y)
+
+        _, moves = self.board.history[-1]
 
         self.write_queue.put({
             "game": "move",
             "piece": str(piece),
-            "target": self.history[-1]
+            "target": moves
         })
-
-        if piece == self.piece.opposite():
-            self.write_queue.put({
-                "game": "movable",
-                "target": self.board.get_movable(self.piece)
-            })
 
         print("player: move", (x, y), self.piece.description())
 
@@ -39,6 +39,11 @@ class NetworkPlayer(DefaultPlayer):
             return None
 
         movable = self.board.get_movable(self.piece)
+
+        self.write_queue.put({
+            "game": "movable",
+            "target": movable
+        })
 
         # debug
         """
@@ -62,9 +67,10 @@ class NetworkPlayer(DefaultPlayer):
                 elif action == "pass":
                     if len(movable) == 0:
                         return None
-            elif type(action) == tuple:
+            elif type(action) == list:
                 if len(action) == 2:
                     if type(action[0]) == int and type(action[1]) == int:
+                        action = tuple(action)
                         if action in movable:
                             return action
 
