@@ -20,6 +20,11 @@ class Builder:
         return GuiPlayer(game_config, name = name)
 
     @classmethod
+    def build_network_player(cls, game_config, name):
+        from .network_player import NetworkPlayer
+        return NetworkPlayer(game_config, name = name)
+
+    @classmethod
     def build_random_player(cls, game_config, name):
         from .random_player import RandomPlayer
         return RandomPlayer(game_config, name=name)
