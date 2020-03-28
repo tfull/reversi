@@ -113,7 +113,7 @@ if __name__ == '__main__':
     if len(sys.argv) == 2:
         main(int(sys.argv[1]))
     elif len(sys.argv) == 3:
-        main(int(sys.argv[1], sys.argv[2]))
+        main(int(sys.argv[1]), int(sys.argv[2]))
     else:
         sys.stderr.write("wrong number of arguments\n  1 => port\n  2 => step\n")
         sys.exit(1)
