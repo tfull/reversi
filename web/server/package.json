@@ -10,7 +10,5 @@
     "start": "node src/main.js",
     "test": "node src/test.js"
   },
-  "author": "",
-  "license": "ISC"
+  "author": ""
 }
-  

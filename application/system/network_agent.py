@@ -83,6 +83,8 @@ class NetworkAgent:
         while True:
             message = connection.recv(size)
 
+            print("message:", message)
+
             if not message:
                 break
 
@@ -96,6 +98,8 @@ class NetworkAgent:
 
                 data = buffer[:index + 1]
                 buffer = buffer[index + 1:]
+
+                print(json.loads(str(data, "UTF-8")))
 
                 response, defer = self.devide(json.loads(str(data, "UTF-8")))
 
@@ -201,10 +205,10 @@ class NetworkAgent:
 
         return {
             "command": "/room/create",
+            "board_size": board_size,
             "opponent": {
                 "name": name,
-                "screen_name": screen_name,
-                "board_size": board_size
+                "screen_name": screen_name
             }
         }
 
@@ -275,4 +279,5 @@ class NetworkAgent:
 
             while True:
                 connection, address = sock.accept()
+                print("connected!")
                 self.handle(connection)

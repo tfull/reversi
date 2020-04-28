@@ -3,8 +3,12 @@ import React from 'react';
 class Lobby extends React.Component {
   constructor(props) {
     super(props);
-      this.state = {
+    this.state = {
     };
+  }
+
+  selectPlayer(name) {
+    this.props.selectPlayer(name);
   }
 
   render() {
@@ -12,7 +16,7 @@ class Lobby extends React.Component {
       <div>
         {
           this.props.players.map((record) =>
-            <div>{record.name}</div>
+            <div onClick={this.selectPlayer.bind(this, record.name)}>{record.screen_name}</div>
           )
         }
       </div>

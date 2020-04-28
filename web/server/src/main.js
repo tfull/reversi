@@ -4,7 +4,6 @@ const ws = require('ws');
 const server = new ws.Server({ port: 8079 });
 
 server.on("connection", socket => {
-    console.log(socket);
     console.log("Web: open");
 
     var client = new net.Socket();
