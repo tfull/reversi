@@ -16,7 +16,7 @@ class Lobby extends React.Component {
       <div>
         {
           this.props.players.map((record) =>
-            <div onClick={this.selectPlayer.bind(this, record.name)}>{record.screen_name}</div>
+            <div key={record.name} onClick={this.selectPlayer.bind(this, record.name)}>{record.screen_name}</div>
           )
         }
       </div>

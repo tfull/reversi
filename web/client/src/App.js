@@ -10,11 +10,14 @@ class App extends React.Component {
       scene: "lobby",
       players: [],
       board: null,
+      color: null,
+      movable: [],
       debug: "connected"
     };
 
-    this.selectPlayer = this.selectPlayer.bind(this);
-    this.startGame = this.startGame.bind(this);
+    this.requestSelectPlayer = this.requestSelectPlayer.bind(this);
+    this.requestStartGame = this.requestStartGame.bind(this);
+    this.requestMove = this.requestMove.bind(this);
   }
 
   componentDidMount() {
@@ -31,7 +34,7 @@ class App extends React.Component {
     };
 
     this.socket.onmessage = (event) => {
-      this.setState({ debug: "read" })
+      console.log(event.data);
       this.readMessage(JSON.parse(event.data));
     }
 
@@ -64,7 +67,14 @@ class App extends React.Component {
     } else if (command === "/game/start") {
       this.initializeBoard(this.state.board_size);
       this.setState({
-        scene: "board"
+        scene: "board",
+        color: object.color
+      });
+    } else if (command === "/game/move") {
+      this.move(object.piece, object.target);
+    } else if (command === "/game/notice/your_turn") {
+      this.setState({
+        movable: object.movable
       });
     } else {
       this.setState({
@@ -78,17 +88,17 @@ class App extends React.Component {
     if (this.state.scene === "lobby") {
       return (
         <div id="App">
-          <Lobby players={this.state.players} selectPlayer={this.selectPlayer} />
+          <Lobby players={this.state.players} selectPlayer={this.requestSelectPlayer} />
           <div id="debug">{this.state.debug}</div>
         </div>
       );
     } else if (this.state.scene === "color") {
       return (
-        <Color startGame={this.startGame} />
+        <Color startGame={this.requestStartGame} />
       );
     } else if (this.state.scene === "board") {
       return (
-        <Board board={this.state.board} />
+        <Board board={this.state.board} movable={this.state.movable} move={this.requestMove} />
       );
     } else {
       return (
@@ -101,15 +111,38 @@ class App extends React.Component {
   }
 
   initializeBoard(size) {
-    var board = Array(size).fill(0).map((_, i) => Array(size).fill(0).map((_, j) => 0));
+    let board = Array(size).fill(0).map((_, i) => Array(size).fill(0).map((_, j) => 0));
+    let half = Math.floor(size / 2)
 
-    board[Math.floor(size / 2) - 1][Math.floor(size / 2) - 1] = 1;
-    board[Math.floor(size / 2)][Math.floor(size / 2) - 1] = 2;
-    board[Math.floor(size / 2) - 1][Math.floor(size / 2)] = 2;
-    board[Math.floor(size / 2)][Math.floor(size / 2)] = 1;
+    board[half - 1][half - 1] = 1;
+    board[half][half - 1] = 2;
+    board[half - 1][half] = 2;
+    board[half][half] = 1;
 
     this.setState({
       board: board
+    });
+  }
+
+  move(piece, target) {
+    let v = 0;
+
+    if (piece === "black") {
+      v = 1;
+    } else if (piece === "white") {
+      v = 2;
+    }
+
+    var new_board = this.state.board.slice();
+
+    for (let i = 0; i < target.length; i++) {
+      let x = target[i][0];
+      let y = target[i][1];
+      new_board[y][x] = v;
+    }
+
+    this.setState({
+      board: new_board
     });
   }
 
@@ -119,17 +152,24 @@ class App extends React.Component {
     });
   }
 
-  selectPlayer(name) {
+  requestSelectPlayer(name) {
     this.send({
       command: "/room/create",
       name: name
     });
   }
 
-  startGame(color) {
+  requestStartGame(color) {
     this.send({
       command: "/game/start",
       color: color
+    });
+  }
+
+  requestMove(x, y) {
+    this.send({
+      command: "/game/move",
+      value: [x, y]
     });
   }
 }

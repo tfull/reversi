@@ -5,6 +5,7 @@ const server = new ws.Server({ port: 8079 });
 
 server.on("connection", socket => {
     console.log("Web: open");
+    var buffer = "";
 
     var client = new net.Socket();
 
@@ -16,7 +17,13 @@ server.on("connection", socket => {
 
     client.on("data", message => {
         console.log("Game: " + message);
-        socket.send(message);
+        buffer += message;
+
+        while (message.indexOf("\n") >= 0) {
+            var index = message.indexOf("\n");
+            socket.send(message.slice(0, index));
+            message = message.slice(index + 1);
+        }
     });
 
     socket.on("message", message => {
