@@ -1,0 +1,14 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "websocket": "^1.0.31",
+    "ws": "7.2.3"
+  },
+  "scripts": {
+    "start": "node src/main.js",
+    "test": "node src/test.js"
+  },
+  "author": ""
+}

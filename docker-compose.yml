@@ -1,0 +1,32 @@
+version: "3.7"
+services:
+  game:
+    build:
+      context: .
+      dockerfile: docker/game/Dockerfile
+    user: game
+    working_dir: /home/game
+    command: python commands/server.py --host 0.0.0.0 --port 8000
+    tty: true
+  server:
+    build:
+      context: .
+      dockerfile: docker/server/Dockerfile
+    user: server
+    working_dir: /home/server
+    command: npm start
+    tty: true
+    ports:
+      - "8079:8079"
+  client:
+    build:
+      context: .
+      dockerfile: docker/client/Dockerfile
+    user: client
+    working_dir: /home/client
+    command: sh -c "echo REACT_APP_SERVER_AUTHORITY=localhost:8079 > .env && npm start"
+    tty: true
+    ports:
+      - "8080:3000"
+    environment:
+      SERVER_AUTHORITY: "localhost:8079"
