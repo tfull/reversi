@@ -21,16 +21,14 @@ class Scene(enum.Enum):
 class NetworkAgent:
 
     def __init__(self):
-        self.read_queue = queue.Queue()
-        self.write_queue = queue.Queue()
-
         self.you = Builder.build_network_player({ "board_size": 8 }, "You")
-        self.you.set_queue(self.write_queue, self.read_queue)
-
-        self.scene = Scene.LOBBY
 
     def handle(self, connection):
         self.scene = Scene.LOBBY
+
+        self.read_queue = queue.Queue()
+        self.write_queue = queue.Queue()
+        self.you.set_queue(self.write_queue, self.read_queue)
 
         self.game_thread = None
 
@@ -109,7 +107,7 @@ class NetworkAgent:
                 if defer is not None:
                     defer()
 
-        self.quit()
+        self.quit(connection)
 
     def devide(self, data):
         command = data.get("command", "")
@@ -128,7 +126,9 @@ class NetworkAgent:
                 "message": "no such command \"{}\"".format(command)
             }, None
 
-    def quit(self):
+    def quit(self, connection):
+        connection.close()
+
         self.read_queue.put({ "system": "end" })
 
         if self.scene == Scene.BOARD:
@@ -136,6 +136,8 @@ class NetworkAgent:
 
         if self.game_thread is not None:
             self.game_thread.join()
+
+        self.scene = Scene.LOBBY
 
     def get_player_list(self):
         result = []
@@ -275,9 +277,10 @@ class NetworkAgent:
 
         with contextlib.closing(sock):
             sock.bind((host, port))
-            sock.listen(1)
 
             while True:
+                sock.listen(1)
                 connection, address = sock.accept()
-                print("connected!")
+                print("connected!", id(connection))
                 self.handle(connection)
+                print("handle ended")

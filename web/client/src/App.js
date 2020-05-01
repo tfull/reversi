@@ -18,6 +18,7 @@ class App extends React.Component {
     this.requestSelectPlayer = this.requestSelectPlayer.bind(this);
     this.requestStartGame = this.requestStartGame.bind(this);
     this.requestMove = this.requestMove.bind(this);
+    this.playAgain = this.playAgain.bind(this);
   }
 
   componentDidMount() {
@@ -76,6 +77,10 @@ class App extends React.Component {
       this.setState({
         movable: object.movable
       });
+    } else if (command === "/game/complete") {
+      this.setState({
+        scene: "result"
+      });
     } else {
       this.setState({
         scene: "error",
@@ -98,7 +103,11 @@ class App extends React.Component {
       );
     } else if (this.state.scene === "board") {
       return (
-        <Board board={this.state.board} movable={this.state.movable} move={this.requestMove} />
+        <Board board={this.state.board} scene={"board"} movable={this.state.movable} move={this.requestMove} />
+      );
+    } else if (this.state.scene === "result") {
+      return (
+        <Board board={this.state.board} scene={"result"} playAgain={this.playAgain} />
       );
     } else {
       return (
@@ -143,6 +152,12 @@ class App extends React.Component {
 
     this.setState({
       board: new_board
+    });
+  }
+
+  playAgain() {
+    this.setState({
+      scene: "color"
     });
   }
 
