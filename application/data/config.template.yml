@@ -4,75 +4,105 @@ global:
     model_directory: application/data/model
 
 players:
-    debug_dl:
-        engine: DeepLearningPlayer
-        load: max
-
-    debug_random:
+    random_1:
         engine: RandomPlayer
 
-    first_dlp:
-        engine: DeepLearningPlayer
-        load: max
-
-    random:
+    random_2:
         engine: RandomPlayer
 
-    zero1:
+    dlp_1:
         engine: DeepLearningPlayer
         load: max
-    zero2:
+        board_size: 8
+        hide: true
+
+    dlp_2:
         engine: DeepLearningPlayer
         load: max
-    challenger:
-        engine: GuiPlayer
+        board_size: 8
+        hide: true
+
+    keras_1:
+        engine: KerasPlayer
+        load: max
+        board_size: 8
+
+    keras_2:
+        engine: KerasPlayer
+        load: max
+        board_size: 8
 
 processes:
-    debug:
+    random:
         players:
-            debug_dl:
-                mode: train
-            debug_random: null
-        times: 100
+            random_1: null
+            random_2: null
+        first: random
+        game:
+            board_size: 8
+        times: 1000
 
-    train1:
+    keras_train:
         players:
-            first_dlp:
+            keras_1:
                 mode: train
-            random: null
+            keras_2:
+                mode: train
         first: random
         game:
             board_size: 8
         times: 10000
 
-    test1:
+    keras_test:
         players:
-            first_dlp:
+            keras_1:
                 mode: test
-            random: null
+            keras_2:
+                mode: test
+        first: random
         game:
             board_size: 8
-        times: 100
+        times: 1000
 
-    train_zero:
+    keras_check:
         players:
-            zero1:
-                mode: train
-            zero2:
-                mode: train
-        times: 100000
-
-    test_zero:
-        players:
-            zero1:
+            keras_1:
                 mode: test
-            random: null
+            random_1: null
+        first: random
+        game:
+            board_size: 8
+        times: 1000
+
+    dlp_train:
+        players:
+            dlp_1:
+                mode: train
+            dlp_2:
+                mode: train
+        first: random
+        game:
+            board_size: 8
         times: 10000
 
-    test_gui:
+    dlp_test:
         players:
-            random: null
-            challenger: null
+            dlp_1:
+                mode: test
+            dlp_2:
+                mode: test
+        first: random
         game:
             board_size: 8
-        times: 1
+        times: 1000
+
+    dlp_check:
+        players:
+            dlp_1:
+                mode: test
+            random_1:
+                mode: null
+        first: random
+        game:
+            board_size: 8
+        times: 1000

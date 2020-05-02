@@ -1,11 +1,14 @@
-import plaidml.keras
-plaidml.keras.install_backend()
+try:
+    import plaidml.keras
+    plaidml.keras.install_backend()
+except:
+    pass
 
 import random
 import os
 import numpy as np
 
-from ..core.config import Config
+from ..system.config import Config
 from .exception import PlayerException
 from .default_player import DefaultPlayer
 
