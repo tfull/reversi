@@ -11,7 +11,7 @@ class Config:
 
     @classmethod
     def load(cls):
-        with open(os.path.dirname(__file__) + "/../data/config.yml", "r") as f:
+        with open(os.path.dirname(__file__) + "/../../config.yml", "r") as f:
             cls.DATA = yaml.load(f, Loader = yaml.FullLoader)
 
     @classmethod
